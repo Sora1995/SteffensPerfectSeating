@@ -1,57 +1,97 @@
+/***************************************************************
+* Name : Final
+* Author: Andrew Evans
+* Created : 04/05/2023
+* Course: CIS 152 - Data Structure
+* Version: 1.0
+* OS: Windows 11
+* IDE: QT Creator 9.0.0
+* Copyright : This is my own original work
+* based on specifications issued by our instructor
+* Description : An app that creates a deque and sorts passengers into their seats
+*            Input: int rows, the number of rows in the plane
+*            Ouput: strings informing user what to do, final seating arrangement
+* Academic Honesty: I attest that this is my original work.
+* I have not used unauthorized source code, either modified or
+* unmodified. I have not given other fellow student(s) access
+* to my program.
+***************************************************************/
+
 #include <iostream>
 #include <queue>
-#include <time.h>
-#include <cstdlib>
 #include <QCoreApplication>
 #include <QTextStream>
+#include <chrono>
+#include <algorithm>
+#include <cstdlib>
+#include <random>
+#include <time.h>
+#include <stdlib.h>
 
-void showq(std::queue<int> gq)
-{
-    QTextStream qin(stdin);
-    QTextStream qout(stdout);
-    std::queue<int> g = gq;
-    while (!g.empty()) {
-        qout << '\t' << g.front();
-        g.pop();
-    }
-    qout << '\n';
-}
+/**************************************************************
+* Name: generate_deque
+* Description: Generates the deque
+* Input: int rows, constant int cols
+* Output: N/A
+***************************************************************/
 
-std::queue<int> generate_random_queue(int rows, const int cols) {
-    srand((unsigned)time(NULL));
-    std::queue<int> q;
+std::deque<int> generate_deque(int rows, const int cols) {
+
+    std::deque<int> q;
     int total = rows * cols;
     for (int i = 1; i <= total; i++)
     {
-        (rand() * (RAND_MAX + 1) + rand()) % rows;
+        q.push_back(i);
     }
     return q;
 }
 
-char col_letter(int i)
+/**************************************************************
+* Name: insertionSort
+* Description: Insertion sort of deque
+* Input: Deque
+* Output: N/A
+***************************************************************/
+
+void insertionSort(std::deque<int>& d)
 {
-    return static_cast<char>('A' + i);
+    int n = d.size();
+
+    for (int i = 1; i < n; i++) {
+        int key = d[i];
+        int j = i - 1;
+
+        while (j >= 0 && d[j] > key) {
+            d[j + 1] = d[j];
+            j--;
+        }
+        d[j + 1] = key;
+    }
 }
 
+/**************************************************************
+* Name: main
+* Description: Main portion of the program
+* Input: N/A
+* Output: Program
+***************************************************************/
 
 int main(int argc, char* argv[])
 {
-
     QCoreApplication a(argc, argv);
-
     QTextStream qin(stdin);
     QTextStream qout(stdout);
 
-
-    // Define critical values
+    // Defines critical values
     bool ok;
     int cols = 6;
 
-    // Prompt user
+    // Prompts user
     qout << "Enter how many rows are in the plane: " <<Qt::endl;
+
     int rows = qin.readLine().toInt(&ok);
 
-    while(!ok)
+    while(!ok || rows <= 0)
     {
         qout << "Enter a positive, whole number" << Qt::endl;
         rows = qin.readLine().toInt(&ok);
@@ -63,50 +103,46 @@ int main(int argc, char* argv[])
     {
         qout << "There are " << rows << " rows in the plane, for a total of " << (rows * cols) << " seats." << Qt::endl;
         qout << "Each column of seats is represented with a letter (A - F) and each row is represented by a number (1 - " << rows << ")." << Qt::endl;
-        qout << "Passengers will now be assigned boarding order." << Qt::endl;
+        qout << "Passengers will now be randomly assigned boarding order." << Qt::endl;
     }
 
-    // Generate new array of the defined size in runtime with "new"
+    // Generates new array of the defined size in runtime with "new"
     int** seats = new int* [rows];
     for (int i = 0; i < rows; i++) { seats[i] = new int[cols]; };
 
+    // Fills deque with passengers
+    std::deque<int> passengers = generate_deque(rows, cols);
 
+    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
-    // Fill the queue with passengers
-    std::queue<int> passengers = generate_random_queue(rows, cols);
+    std::shuffle(passengers.begin(), passengers.end(), rng);
 
-
+    std::deque<int> sorted_passengers(passengers);
 
     // Populate seats
     for (int l_col = 0; l_col < cols / 2; l_col++) {
         int r_col = cols - l_col - 1;
         for (int r = 0; r < rows; r += 2)
         {
-            //qout << "Attempting to add passenger " << passengers.front() << "\tto the plane in seat " << col_letter(l_col) << rows - r << Qt::endl;
             seats[rows - 1 - r][l_col] = passengers.front();
-            passengers.pop();
+            passengers.pop_front();
         }
         for (int r = 0; r < rows; r += 2)
         {
-            //qout << "Attempting to add passenger " << passengers.front() << "\tto the plane in seat " << col_letter(r_col) << rows - r << Qt::endl;
             seats[rows - 1 - r][r_col] = passengers.front();
-            passengers.pop();
+            passengers.pop_front();
         }
         for (int r = 1; r < rows; r += 2)
         {
-            //qout << "Attempting to add passenger " << passengers.front() << "\tto the plane in seat " << col_letter(l_col) << rows - r << Qt::endl;
             seats[rows - 1 - r][l_col] = passengers.front();
-            passengers.pop();
+            passengers.pop_front();
         }
         for (int r = 1; r < rows; r += 2)
         {
-            //qout << "Attempting to add passenger " << passengers.front() << "\tto the plane in seat " << col_letter(r_col) << rows - r << Qt::endl;
             seats[rows - 1 - r][r_col] = passengers.front();
-            passengers.pop();
+            passengers.pop_front();
         }
     }
-
-
 
     // Display seating arrangement
     qout << "\t  A  \tB  \tC  \tD  \tE  \tF" << Qt::endl;
@@ -118,7 +154,44 @@ int main(int argc, char* argv[])
         qout << Qt::endl;
     }
 
+    qout << "\nNow, the passengers will be sorted into their correct seats\n" << Qt::endl;
 
+    insertionSort(sorted_passengers);
+
+    // Populate seats
+    for (int l_col = 0; l_col < cols / 2; l_col++) {
+        int r_col = cols - l_col - 1;
+        for (int r = 0; r < rows; r += 2)
+        {
+            seats[rows - 1 - r][l_col] = sorted_passengers.front();
+            sorted_passengers.pop_front();
+        }
+        for (int r = 0; r < rows; r += 2)
+        {
+            seats[rows - 1 - r][r_col] = sorted_passengers.front();
+            sorted_passengers.pop_front();
+        }
+        for (int r = 1; r < rows; r += 2)
+        {
+            seats[rows - 1 - r][l_col] = sorted_passengers.front();
+            sorted_passengers.pop_front();
+        }
+        for (int r = 1; r < rows; r += 2)
+        {
+            seats[rows - 1 - r][r_col] = sorted_passengers.front();
+            sorted_passengers.pop_front();
+        }
+    }
+
+    // Display seating arrangement
+    qout << "\t  A  \tB  \tC  \tD  \tE  \tF" << Qt::endl;
+    for (int r = 0; r < rows; r++) {
+        qout << "Row " << r + 1 << "\t: ";
+        for (int c = 0; c < cols; c++) {
+            qout << seats[r][c] << "\t";
+        }
+        qout << Qt::endl;
+    }
 
     // Memory cleanup
     for (int i = 0; i < rows; i++) {
